@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quizmas Scores Dashboard</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<style>
+@font-face { font-family: "Baloo 2"; src: url(../fonts/baloo-2-latin-800-normal.woff2) format("woff2"); font-weight: 800; }
+@font-face { font-family: "Nunito"; src: url(../fonts/nunito-latin-400-normal.woff2) format("woff2"); font-weight: 400; }
+@font-face { font-family: "Nunito"; src: url(../fonts/nunito-latin-700-normal.woff2) format("woff2"); font-weight: 700; }
+/* Staff dashboard: calm, readable, Decipher blues. */
+:root { --navy: #0b2f6b; --deep: #061a3a; --sky: #4fc3f7; --bg: #f2f7fb; --card: #ffffff; --line: #d8e3ee; --ink: #10233f; --muted: #5b6f8a; --gold: #f6c453; --good: #148a5b; --practice: #8a6d1d; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 Nunito, system-ui, sans-serif; }
+header { background: linear-gradient(120deg, var(--deep), var(--navy)); color: #fff; padding: 18px max(16px, env(safe-area-inset-left, 0px)); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header .wrap { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 0; }
+h1 { font: 800 1.6rem/1 "Baloo 2", sans-serif; margin: 0; }
+header p { margin: 2px 0 0; color: #bfe6ff; font-weight: 700; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; }
+header .spacer { flex: 1; }
+button, select, input { font: inherit; }
+.btn { border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer; background: var(--sky); color: var(--deep); }
+.btn.ghost { background: rgba(255,255,255,.14); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.btn.gold { background: var(--gold); color: #3b2500; }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+main { padding-block: 22px 40px; }
+.login { max-width: 380px; margin: 60px auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 26px; display: grid; gap: 10px; }
+.login h2 { margin: 0; font: 800 1.4rem "Baloo 2", sans-serif; }
+.login input { padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); }
+.err { color: #b42318; font-weight: 700; min-height: 1.2em; margin: 0; }
+.note { background: #fff8e1; border: 1px solid #f1d58a; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-weight: 700; color: #6b5200; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+.tile span { color: var(--muted); font-weight: 700; font-size: .85rem; }
+.tile b { display: block; font: 800 2rem/1.1 "Baloo 2", sans-serif; color: var(--navy); font-variant-numeric: tabular-nums; }
+.tools { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.tools input, .tools select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; min-width: 0; }
+.tools input { flex: 1 1 220px; }
+.tools .right { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.tools .btn { background: var(--navy); color: #fff; }
+.table-box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.wrap { white-space: normal; min-width: 260px; }
+th { background: #eaf2f9; font-weight: 700; cursor: pointer; position: sticky; top: 0; user-select: none; }
+th[aria-sort="ascending"]::after { content: " ▲"; font-size: .7em; }
+th[aria-sort="descending"]::after { content: " ▼"; font-size: .7em; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 700; font-size: .8rem; }
+.pill.official { background: #dcf5ea; color: var(--good); }
+.pill.practice { background: #fdf0cc; color: var(--practice); }
+.empty { padding: 40px; text-align: center; color: var(--muted); font-weight: 700; }
+.updated { color: var(--muted); font-size: .85rem; margin: 10px 2px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div><p>Quizmas Season 3 · Game Hub</p><h1>Scores Dashboard</h1></div>
+    <div class="spacer"></div>
+    <button class="btn ghost" id="refreshBtn" hidden>Refresh</button>
+    <button class="btn ghost" id="logoutBtn" hidden>Sign out</button>
+  </div>
+</header>
+<main class="wrap">
+  <form class="login" id="login">
+    <h2>Staff sign in</h2>
+    <label for="key">Dashboard password</label>
+    <input id="key" type="password" autocomplete="current-password" required>
+    <p class="err" id="loginErr"></p>
+    <button class="btn gold" type="submit">Open dashboard</button>
+  </form>
+
+  <section id="dash" hidden>
+    <div class="note" id="localNote" hidden>The score sheet isn't connected yet, so this shows only the results saved on this device. Add the Google Sheet link in js/config.js to see everyone's scores.</div>
+    <div class="tiles">
+      <div class="tile"><span>Students played</span><b id="tPlayers">0</b></div>
+      <div class="tile"><span>Average official score</span><b id="tAvg">0</b></div>
+      <div class="tile"><span>Highest official score</span><b id="tTop">0</b></div>
+      <div class="tile"><span>Games recorded (incl. practice)</span><b id="tRows">0</b></div>
+    </div>
+    <div class="tools">
+      <input id="search" placeholder="Search name or Quizmas ID…" aria-label="Search name or Quizmas ID">
+      <select id="gameFilter" aria-label="Filter by game"><option value="">All games</option></select>
+      <select id="typeFilter" aria-label="Official or practice">
+        <option value="Official">Official scores only</option>
+        <option value="">Official + practice</option>
+        <option value="Practice">Practice only</option>
+      </select>
+      <div class="right">
+        <button class="btn" id="csvBtn">Export CSV</button>
+        <button class="btn" id="xlsxBtn">Export Excel</button>
+      </div>
+    </div>
+    <div class="table-box"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    <p class="updated" id="updated"></p>
+  </section>
+</main>
+<script src="../js/config.js"></script>
+<script src="../vendor/xlsx.mini.min.js"></script>
+<script>
+const CFG = window.DR_CONFIG;
+const $ = (id) => document.getElementById(id);
+const COLS = ["Date & time", "Name", "Quizmas ID", "Game", "Official?", "Score", "Level", "Breakdown", "Progress", "Time (sec)", "Device"];
+let all = [], headers = [], sortCol = "Score", sortDir = -1, keyCache = "";
+
+function fromLocal() {
+  // Test mode (no sheet connected): read the scores waiting on this device, from every Quizmas game.
+  let q = [];
+  try {
+    for (let k = 0; k < localStorage.length; k++) {
+      const key = localStorage.key(k);
+      if (/_queue/.test(key)) q = q.concat(JSON.parse(localStorage.getItem(key) || "[]"));
+    }
+  } catch { q = []; }
+  // Same columns as the Google Sheet. Older Design Rescue results get their breakdown built here.
+  headers = ["Date & time", "Name", "Quizmas ID", "Game", "Official?", "Attempt", "Score", "Max", "Level", "Breakdown", "Progress", "Time (sec)", "Device", "Strength", "To improve", "Game key", "Details"];
+  const bd = (r) => r.breakdown || (r.spotScore !== undefined ? `Spot ${r.spotScore}/30 · Layout ${r.layoutScore}/40 · Final touch ${r.finalTouchScore}/30` : "");
+  const pr = (r) => r.progress || (r.problemsFound !== undefined ? `${r.problemsFound} problems found · ${r.corrections} corrections` : "");
+  return q.map((r) => [r.timestamp, r.name, r.quizmasId, r.gameName, r.official ? "Official" : "Practice", r.attempt, r.score, r.maxScore, r.level, bd(r), pr(r), r.totalSeconds, r.device, r.strength, r.improve, r.game, ""]);
+}
+
+async function load(key) {
+  if (!CFG.SHEETS_URL) {
+    $("localNote").hidden = false;
+    all = fromLocal();
+    return true;
+  }
+  const res = await fetch(`${CFG.SHEETS_URL}?key=${encodeURIComponent(key)}&t=${Date.now()}`);
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "Could not load scores");
+  headers = data.headers;
+  all = data.rows;
+  return true;
+}
+
+const idx = (name) => headers.indexOf(name);
+function filtered() {
+  const q = $("search").value.trim().toLowerCase();
+  const g = $("gameFilter").value, t = $("typeFilter").value;
+  return all.filter((r) => (!q || String(r[idx("Name")]).toLowerCase().includes(q) || String(r[idx("Quizmas ID")]).toLowerCase().includes(q))
+    && (!g || r[idx("Game")] === g) && (!t || r[idx("Official?")] === t));
+}
+function fmtDate(v) {
+  const d = new Date(v);
+  return isNaN(d) ? String(v) : d.toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+function render() {
+  const games = [...new Set(all.map((r) => r[idx("Game")]))].filter(Boolean);
+  const gf = $("gameFilter"), cur = gf.value;
+  gf.innerHTML = `<option value="">All games</option>` + games.map((g) => `<option${g === cur ? " selected" : ""}>${g}</option>`).join("");
+  const official = all.filter((r) => r[idx("Official?")] === "Official");
+  const scores = official.map((r) => Number(r[idx("Score")]) || 0);
+  $("tPlayers").textContent = new Set(all.map((r) => r[idx("Quizmas ID")])).size;
+  $("tAvg").textContent = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+  $("tTop").textContent = scores.length ? Math.max(...scores) : 0;
+  $("tRows").textContent = all.length;
+
+  const rows = filtered().sort((a, b) => {
+    const x = a[idx(sortCol)], y = b[idx(sortCol)];
+    return (typeof x === "number" && typeof y === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir;
+  });
+  $("tbl").tHead.innerHTML = "<tr>" + COLS.map((c) => `<th scope="col" ${c === sortCol ? `aria-sort="${sortDir > 0 ? "ascending" : "descending"}"` : ""} data-c="${c}">${c}</th>`).join("") + "</tr>";
+  $("tbl").tBodies[0].innerHTML = rows.length ? rows.map((r) => "<tr>" + COLS.map((c) => {
+    const v = r[idx(c)];
+    if (c === "Official?") return `<td><span class="pill ${String(v).toLowerCase()}">${v}</span></td>`;
+    if (c === "Date & time") return `<td>${fmtDate(v)}</td>`;
+    if (c === "Breakdown") return `<td class="wrap">${v ?? ""}</td>`;
+    const num = typeof v === "number";
+    return `<td class="${num ? "num" : ""}">${v ?? ""}</td>`;
+  }).join("") + "</tr>").join("") : `<tr><td class="empty" colspan="${COLS.length}">No scores match yet.</td></tr>`;
+  $("tbl").tHead.querySelectorAll("th").forEach((th) => th.addEventListener("click", () => {
+    const c = th.dataset.c;
+    sortDir = c === sortCol ? -sortDir : (c === "Name" || c === "Game" ? 1 : -1);
+    sortCol = c;
+    render();
+  }));
+  $("updated").textContent = `Showing ${rows.length} of ${all.length} · updated ${new Date().toLocaleTimeString("en-GB")}`;
+}
+
+function exportRows() { return [headers, ...filtered()]; }
+function stamp() { return new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-"); }
+$("csvBtn").addEventListener("click", () => {
+  const csv = exportRows().map((r) => r.map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `quizmas-scores-${stamp()}.csv`;
+  a.click();
+});
+$("xlsxBtn").addEventListener("click", () => {
+  const ws = XLSX.utils.aoa_to_sheet(exportRows());
+  ws["!cols"] = headers.map((h) => ({ wch: Math.max(10, h.length + 2) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Scores");
+  XLSX.writeFile(wb, `quizmas-scores-${stamp()}.xlsx`);
+});
+["search", "gameFilter", "typeFilter"].forEach((id) => $(id).addEventListener("input", render));
+
+async function open(key) {
+  try {
+    $("loginErr").textContent = "Loading…";
+    await load(key);
+    keyCache = key;
+    try { sessionStorage.setItem("qz_dash_key", key); } catch { /* ignore */ }
+    $("login").hidden = true;
+    $("dash").hidden = false;
+    $("refreshBtn").hidden = $("logoutBtn").hidden = false;
+    render();
+  } catch (e) {
+    $("loginErr").textContent = e.message === "Wrong password" ? "That password isn't right." : "Couldn't reach the score sheet. Check the internet connection.";
+  }
+}
+$("login").addEventListener("submit", (e) => { e.preventDefault(); open($("key").value.trim()); });
+$("refreshBtn").addEventListener("click", () => open(keyCache));
+$("logoutBtn").addEventListener("click", () => { try { sessionStorage.removeItem("qz_dash_key"); } catch { /* ignore */ } location.reload(); });
+setInterval(() => { if (keyCache && !document.hidden) load(keyCache).then(render).catch(() => {}); }, 30000);
+let saved = null;
+try { saved = sessionStorage.getItem("qz_dash_key"); } catch { /* ignore */ }
+if (saved) open(saved);
+</script>
+</body>
+</html>
