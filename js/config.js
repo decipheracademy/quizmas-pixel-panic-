@@ -2,7 +2,7 @@
 window.PP_CONFIG = {
   // Paste the SAME Google Apps Script web-app URL used for Design Rescue here.
   // While empty, scores are kept safely on the device and sent later.
-  SHEETS_URL: "",
+  SHEETS_URL: "https://script.google.com/macros/s/AKfycbzxAbynK-IJnqTZnjvMTBGATtzqUDDBsUL1kxRjUNJGn_zTyS02vBRsnm8DaHUpS7DC/exec",
   GAME_ID: "pixel-panic",
   GAME_NAME: "Pixel Panic: The Perfect Poster Challenge",
   // Seconds for each challenge.
